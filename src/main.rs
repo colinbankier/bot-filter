@@ -17,8 +17,10 @@ use serde_json::Error;
 
 #[derive(Debug, Deserialize)]
 struct Event {
-    source_ip: String,
-    session_id: String
+    #[serde(rename = "ipAddress")]
+    ip_address: String,
+    #[serde(rename = "sessionID")]
+    session_id: i32
 }
 
 impl FromStr for Event {
@@ -60,14 +62,14 @@ fn main() {
             Ok(event_str) => {
                 match Event::from_str(&event_str) {
                     Ok(event) => {
-                        match event.source_ip.parse() {
+                        match event.ip_address.parse() {
                             Ok(ip) => {
                                 if cidrs.iter().any(|cidr| cidr.contains(&ip)) {
                                     println!("{}", event.session_id);
                                 }
                             },
                             Err(err) => {
-                                eprintln!("Invalid ip address {}", event.source_ip);
+                                eprintln!("Invalid ip address {}", event.ip_address);
                             }
                         }
                     },
@@ -79,12 +81,6 @@ fn main() {
             Err(err) => eprintln!("Error reading line {}", err)
         }
     }
-    // let filtered = events.iter().filter(|event|
-    //     cidrs.iter().any(|cidr| cidr.contains(&event.source_ip))
-    // );
-    // for event in filtered {
-    //     println!("{}", event.session_id);
-    // }
 }
 
 fn cidrs_list(filename: &str) -> Vec<Ipv4Cidr> {
@@ -108,23 +104,4 @@ fn read_file_lines(filename: &str) -> io::Result<Vec<String>> {
     let mut file = File::open(filename).expect("file not found");
     let mut buf_reader = BufReader::new(file);
     buf_reader.lines().collect()
-}
-
-// fn line_reader(filename: &str) -> BufReader<String> {
-//     let mut file = File::open(filename).expect("file not found");
-//     let mut buf_reader = BufReader::new(file);
-//     buf_reader
-// }
-
-fn get_events(filename: &str) -> Vec<Event> {
-    vec![
-        Event{
-            source_ip: "10.1.9.3".parse().unwrap(),
-            session_id: "1".to_string()
-        },
-        Event{
-            source_ip: "11.1.9.1".parse().unwrap(),
-            session_id: "2".to_string()
-        }
-    ]
 }
