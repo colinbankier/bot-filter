@@ -6,7 +6,6 @@ extern crate serde_json;
 extern crate serde_derive;
 
 use cidr::{Ipv4Cidr, Cidr};
-use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::{env, process};
 use std::io::prelude::*;
@@ -31,8 +30,8 @@ impl FromStr for Event {
 }
 
 struct Args {
-    cidr_filename: String,
-    events_filename: String
+    events_filename: String,
+    cidr_filename: String
 }
 
 impl Args {
@@ -40,8 +39,8 @@ impl Args {
         if args.len() < 3 {
             return Err("not enough arguments");
         }
-        let cidr_filename = args[1].clone();
-        let events_filename = args[2].clone();
+        let events_filename = args[1].clone();
+        let cidr_filename = args[2].clone();
 
         Ok(Args{cidr_filename, events_filename})
     }
@@ -55,8 +54,11 @@ fn main() {
     });
 
     let cidrs = cidrs_list(&args.cidr_filename);
-    let file = File::open(&args.events_filename).expect("file not found");
-    let mut buf_reader = BufReader::new(file);
+    let file = File::open(&args.events_filename).unwrap_or_else(|err| {
+        eprintln!("Problem reading file: {}", err);
+        process::exit(1);
+    });
+    let buf_reader = BufReader::new(file);
     for line in buf_reader.lines() {
         match line {
             Ok(event_str) => {
@@ -69,7 +71,7 @@ fn main() {
                                 }
                             },
                             Err(err) => {
-                                eprintln!("Invalid ip address {}", event.ip_address);
+                                eprintln!("Invalid ip address {} {}", event.ip_address, err);
                             }
                         }
                     },
@@ -101,7 +103,7 @@ fn cidrs_list(filename: &str) -> Vec<Ipv4Cidr> {
 }
 
 fn read_file_lines(filename: &str) -> io::Result<Vec<String>> {
-    let mut file = File::open(filename).expect("file not found");
-    let mut buf_reader = BufReader::new(file);
+    let file = File::open(filename).expect("file not found");
+    let buf_reader = BufReader::new(file);
     buf_reader.lines().collect()
 }
