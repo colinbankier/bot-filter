@@ -52,21 +52,20 @@ fn main() {
 }
 
 fn cidrs_list(filename: &str) -> Vec<Ipv4Cidr> {
-    // vec![
-    //     Ipv4Cidr::from_str("10.1.0.0/16").unwrap(),
-    //     Ipv4Cidr::from_str("10.2.0.0/16").unwrap()
-    // ];
-    let cidrs = read_file_lines(filename).unwrap_or_else(|err| {
+    let lines = read_file_lines(filename).unwrap_or_else(|err| {
         eprintln!("Problem reading cidrs: {}", err);
         process::exit(1);
     });
-    let (oks, fails): (Result<Ipv4Cidr, NetworkParseError>, Result<Ipv4Cidr, NetworkParseError>) = cidrs.iter().map(|line| {
-        Ipv4Cidr::from_str(line)
-    }).partition(Result::is_ok);
-    for fail in fails {
-        eprintln!("Invalid cidr {}", fail);
+    let mut cidrs = Vec::new();
+    for line in lines {
+        match Ipv4Cidr::from_str(&line) {
+            Ok(cidr) => cidrs.push(cidr.clone()),
+            Err(err) => {
+                eprintln!("Invalid cidr {} {}", line, err);
+            }
+        }
     }
-    oks.iter().filter_map(|cidr| cidr.unwrap_or(None)).collect::<Vec<Ipv4Cidr>>()
+    cidrs
 }
 
 fn read_file_lines(filename: &str) -> io::Result<Vec<String>> {
@@ -82,8 +81,12 @@ fn read_file_lines(filename: &str) -> io::Result<Vec<String>> {
 fn get_events(filename: &str) -> Vec<Event> {
     vec![
         Event{
-            source_ip: "10.1.9.1".parse().unwrap(),
+            source_ip: "10.1.9.3".parse().unwrap(),
             session_id: "1".to_string()
+        },
+        Event{
+            source_ip: "11.1.9.1".parse().unwrap(),
+            session_id: "2".to_string()
         }
     ]
 }
