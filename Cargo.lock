@@ -1,0 +1,23 @@
+[root]
+name = "bot-filter"
+version = "0.1.0"
+dependencies = [
+ "cidr 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "bitstring"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "cidr"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitstring 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[metadata]
+"checksum bitstring 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "3e54f7b7a46d7b183eb41e2d82965261fa8a1597c68b50aced268ee1fc70272d"
+"checksum cidr 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "f01a2069e8805d097d6d75cccde4efdd100a4bfa2faec38f9006fec5e763977b"
