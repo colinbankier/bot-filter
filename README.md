@@ -13,3 +13,9 @@ Usage:
 ./bot-filter [content_access_file] [cidr_list]
 ```
 Where the output to stdout is the sessionIDs with IP matching at least one cidr in the list
+
+### compile static binary
+Assumes toolchain installed via rustup.
+```
+cargo build --release --target=x86_64-unknown-linux-musl
+```

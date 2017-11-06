@@ -28,9 +28,11 @@ struct Event {
 impl FromStr for Event {
     type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let error = || Error::new(ErrorKind::Other, format!("Couldn't parse line: {}", s));
+
         let v: Vec<&str> = s.split('\t').collect();
-        let session_string = v.get(0).ok_or(Error::new(ErrorKind::Other, format!("Couldn't parse line: {}", s))).map_err(ParseError::Io)?;
-        let ip_address = v.get(1).ok_or(Error::new(ErrorKind::Other, format!("Couldn't parse line: {}", s))).map_err(ParseError::Io)?;
+        let session_string = v.get(0).ok_or(error()).map_err(ParseError::Io)?;
+        let ip_address = v.get(1).ok_or(error()).map_err(ParseError::Io)?;
         let session_id = session_string.parse().map_err(ParseError::ParseInt)?;
         Ok(Event {
             ip_address: ip_address.to_string(),
