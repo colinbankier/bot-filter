@@ -1,10 +1,16 @@
 # Bot Filter
 
-Filter json events for `sessionID` by `ipAddress` given a list of CIDRs.
+Filter tsv events for `sessionID` by `ipAddress` given a list of CIDRs.
+e.g.
+```
+0	1.1.1.1
+1	192.0.1.1
+2	10.1.1.1
+```
 
 Installation:
 ```
-wget https://github.com/colinbankier/bot-filter/raw/master/target/x86_64-unknown-linux-musl/release/bot-filter
+wget https://github.com/colinbankier/bot-filter/raw/treebitmap/target/x86_64-unknown-linux-musl/release/bot-filter
 chmod +x bot-filter
 ```
 
