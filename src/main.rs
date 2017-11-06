@@ -1,31 +1,41 @@
 extern crate cidr;
-extern crate serde;
-extern crate serde_json;
+extern crate treebitmap;
 
-#[macro_use]
-extern crate serde_derive;
-
+use treebitmap::{IpLookupTable, IpLookupTableOps};
 use cidr::{Ipv4Cidr, Cidr};
+
 use std::str::FromStr;
+use std::net::Ipv4Addr;
 use std::{env, process};
 use std::io::prelude::*;
 use std::fs::File;
-use std::io;
+use std::io::{self, Error, ErrorKind};
+use std::num;
 use std::io::BufReader;
-use serde_json::Error;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
+enum ParseError {
+    Io(io::Error),
+    ParseInt(num::ParseIntError),
+}
+
+#[derive(Debug)]
 struct Event {
-    #[serde(rename = "ipAddress")]
     ip_address: String,
-    #[serde(rename = "sessionID")]
     session_id: i32
 }
 
 impl FromStr for Event {
-    type Err = Error;
+    type Err = ParseError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(s)
+        let v: Vec<&str> = s.split('\t').collect();
+        let session_string = v.get(0).ok_or(Error::new(ErrorKind::Other, format!("Couldn't parse line: {}", s))).map_err(ParseError::Io)?;
+        let ip_address = v.get(1).ok_or(Error::new(ErrorKind::Other, format!("Couldn't parse line: {}", s))).map_err(ParseError::Io)?;
+        let session_id = session_string.parse().map_err(ParseError::ParseInt)?;
+        Ok(Event {
+            ip_address: ip_address.to_string(),
+            session_id: session_id
+        })
     }
 }
 
@@ -53,7 +63,7 @@ fn main() {
         process::exit(1);
     });
 
-    let cidrs = cidrs_list(&args.cidr_filename);
+    let cidrs = cidrs_tree(&args.cidr_filename);
     let file = File::open(&args.events_filename).unwrap_or_else(|err| {
         eprintln!("Problem reading file: {}", err);
         process::exit(1);
@@ -66,7 +76,7 @@ fn main() {
                     Ok(event) => {
                         match event.ip_address.parse() {
                             Ok(ip) => {
-                                if cidrs.iter().any(|cidr| cidr.contains(&ip)) {
+                                if cidrs.exact_match(ip, 32).is_some() {
                                     println!("{}", event.session_id);
                                 }
                             },
@@ -76,7 +86,7 @@ fn main() {
                         }
                     },
                     Err(err) => {
-                        eprintln!("Invalid event {}", err);
+                        eprintln!("Invalid event {:?}", err);
                     }
                 }
             },
@@ -85,19 +95,21 @@ fn main() {
     }
 }
 
-fn cidrs_list(filename: &str) -> Vec<Ipv4Cidr> {
+fn cidrs_tree(filename: &str) -> IpLookupTable<Ipv4Addr, String> {
     let lines = read_file_lines(filename).unwrap_or_else(|err| {
         eprintln!("Problem reading cidrs: {}", err);
         process::exit(1);
     });
-    let mut cidrs = Vec::new();
+    let mut cidrs = IpLookupTable::new();
     for line in lines {
         match Ipv4Cidr::from_str(&line) {
-            Ok(cidr) => cidrs.push(cidr.clone()),
+            Ok(cidr) => {
+                cidrs.insert(cidr.first_address(), cidr.network_length() as u32, line);
+            },
             Err(err) => {
                 eprintln!("Invalid cidr {} {}", line, err);
             }
-        }
+        };
     }
     cidrs
 }
