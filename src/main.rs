@@ -72,25 +72,29 @@ fn main() {
     for line in buf_reader.lines() {
         match line {
             Ok(event_str) => {
-                match Event::from_str(&event_str) {
-                    Ok(event) => {
-                        match event.ip_address.parse() {
-                            Ok(ip) => {
-                                if cidrs.exact_match(ip, 32).is_some() {
-                                    println!("{}", event.session_id);
-                                }
-                            },
-                            Err(err) => {
-                                eprintln!("Invalid ip address {} {}", event.ip_address, err);
-                            }
-                        }
-                    },
-                    Err(err) => {
-                        eprintln!("Invalid event {:?}", err);
-                    }
-                }
+                process_line(&event_str, &cidrs)
             },
             Err(err) => eprintln!("Error reading line {}", err)
+        }
+    }
+}
+
+fn process_line(event_str: &str, cidrs: &IpLookupTable<Ipv4Addr, String>) {
+    match Event::from_str(&event_str) {
+        Ok(event) => {
+            match event.ip_address.parse() {
+                Ok(ip) => {
+                    if cidrs.longest_match(ip).is_some() {
+                        println!("{}", event.session_id);
+                    }
+                },
+                Err(err) => {
+                    eprintln!("Invalid ip address {} {}", event.ip_address, err);
+                }
+            }
+        },
+        Err(err) => {
+            eprintln!("Invalid event {:?}", err);
         }
     }
 }
@@ -118,4 +122,26 @@ fn read_file_lines(filename: &str) -> io::Result<Vec<String>> {
     let file = File::open(filename).expect("file not found");
     let buf_reader = BufReader::new(file);
     buf_reader.lines().collect()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use treebitmap::{IpLookupTable, IpLookupTableOps};
+
+    #[test]
+    fn test_overlapping_cidrs() {
+        let mut cidrs = IpLookupTable::new();
+        for address in vec!["10.10.10.0/24", "10.10.0.0/16", "10.9.199.128/25", "10.11.0.0/16"] {
+            let cidr = Ipv4Cidr::from_str(address).unwrap();
+            cidrs.insert(cidr.first_address(), cidr.network_length() as u32, address);
+        }
+
+        // Existing IPs
+        assert!(cidrs.longest_match("10.10.255.253".parse().unwrap()).is_some());
+        assert!(cidrs.longest_match("10.11.3.3".parse().unwrap()).is_some());
+
+        // Non-existing IPs
+        assert!(cidrs.longest_match("10.12.255.253".parse().unwrap()).is_none());
+    }
 }
