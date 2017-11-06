@@ -10,7 +10,7 @@ e.g.
 
 Installation:
 ```
-wget https://github.com/colinbankier/bot-filter/raw/treebitmap/target/x86_64-unknown-linux-musl/release/bot-filter
+wget https://github.com/colinbankier/bot-filter/raw/treebitmap/target/x86_64-unknown-linux-musl/release/bot-filter -O bot-filter
 chmod +x bot-filter
 ```
 
